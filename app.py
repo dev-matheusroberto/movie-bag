@@ -1,44 +1,47 @@
-from flask import Flask, jsonify, request
+from flask import Flask, request, Response
+from database.db import mongo
+from flask_pymongo import ObjectId
+from bson.json_util import dumps
 
 app = Flask(__name__)
 
-movies = [
-    {
-        "name": "The Shawshank Redemption",
-        "casts": ["Tim Robbins", "Morgan Freeman", "Bob Gunton", "William Sadler"],
-        "genres": ["Drama"]
-    },
-    {
-        "name": "The Godfather ",
-        "casts": ["Marlon Brando", "Al Pacino", "James Caan", "Diane Keaton"],
-        "genres": ["Crime", "Drama"]
-    }
-]
+# MongoDB Config
+app.config['MONGO_URI'] = 'mongodb://localhost:27017/movie-bag'
+mongo.init_app(app)
 
 
-@app.route('/movies')
-def hello():
-    return jsonify(movies)
+@app.route('/movies', methods=['GET'])
+def get_movies():
+    movies: list = list(mongo.db.movies.find())
+    if not movies:
+        return {'message': 'No movies found.'}
+    return Response(dumps(movies), mimetype='application/json', status=200)
+
+
+@app.route('/movies/<id>', methods=['GET'])
+def get_movie(id):
+    movie = mongo.db.movies.find_one_or_404({'_id': ObjectId(id)})
+    return Response(dumps(movie), mimetype='application/json', status=200)
 
 
 @app.route('/movies', methods=['POST'])
 def add_movie():
-    movie = request.get_json()
-    movies.append(movie)
-    return {'id': len(movies)}, 200
+    new_movie = request.get_json()
+    mongo.db.movies.insert_one(new_movie)
+    return {'id': str(id)}, 200
 
 
-@app.route('/movies/<int:index>', methods=['PUT'])
-def update_movie(index):
-    movie = request.get_json()
-    movies[index] = movie
-    return jsonify(movies[index]), 200
+@app.route('/movies/<id>', methods=['PUT'])
+def update_movie(id):
+    edited_movie = request.get_json()
+    mongo.db.movies.update_one({'_id': ObjectId(id)}, {'$set': edited_movie})
+    return {'message': 'Movie has been updated.'}, 200
 
 
-@app.route('/movies/<int:index>', methods=['DELETE'])
-def delete_movie(index):
-    movies.pop(index)
-    return 'None', 200
+@app.route('/movies/<id>', methods=['DELETE'])
+def delete_movie(id):
+    mongo.db.movies.delete_one({"_id": ObjectId(id)})
+    return '', 200
 
 
-app.run()
+app.run(debug=True)
