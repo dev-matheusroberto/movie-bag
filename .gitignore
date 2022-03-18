@@ -1,2 +1,8 @@
 #JetBrains
 .idea/
+
+#Python
+*.pyc
+*.pyo
+build/
+dist/
