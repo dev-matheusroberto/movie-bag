@@ -6,3 +6,6 @@
 *.pyo
 build/
 dist/
+
+# ENV file
+.env
